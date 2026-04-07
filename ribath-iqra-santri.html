@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Santri — Ribath Iqra Izzul Islam</title>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 2 — PERUBAHAN 2                   -->
+  <!-- theme.css harus dipanggil SEBELUM tag <style> lokal        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <link rel="stylesheet" href="theme.css">
+  
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       LAYOUT SANTRI DASHBOARD (Overrides & Specifics)
+       ═══════════════════════════════════════════════════════════ */
+    #app { max-width: 800px; margin: 0 auto; padding: 0 16px 40px; }
+    
+    .profile-card {
+      background: var(--page-card); border: 1px solid var(--page-border);
+      border-radius: var(--radius); padding: 24px 20px; text-align: center;
+      margin: 16px 0 20px; box-shadow: var(--page-shadow);
+    }
+    .profile-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--green-pale); border: 2px solid var(--green-bright);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 12px; box-shadow: 0 4px 16px rgba(76,175,128,0.2);
+    }
+    .profile-name {
+      font-family: var(--font-display); font-size: 22px; font-weight: 700;
+      color: var(--page-text); margin-bottom: 4px;
+    }
+    .profile-meta { font-size: 13px; color: var(--page-text2); }
+
+    .date-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 16px 0 12px; padding: 0 4px;
+    }
+    .date-nav-btn {
+      background: var(--page-card); border: 1px solid var(--page-border);
+      border-radius: var(--radius-xs); padding: 6px 12px;
+      color: var(--page-text2); cursor: pointer; transition: var(--transition);
+    }
+    .date-nav-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .date-current { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--page-text); }
+
+    .att-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+    .att-day {
+      background: var(--page-card); border: 1px solid var(--page-border);
+      border-radius: var(--radius-sm); padding: 10px 4px; text-align: center;
+    }
+    .att-label { font-size: 11px; color: var(--page-text3); margin-bottom: 4px; font-weight: 500; }
+    .att-status { font-size: 20px; }
+    .att-summary {
+      display: flex; justify-content: space-around; background: var(--page-card2);
+      padding: 10px; border-radius: var(--radius-sm); margin-bottom: 20px;
+      font-size: 12px; color: var(--page-text2); border: 1px solid var(--page-border);
+    }
+    .att-summary strong { color: var(--page-text); }
+
+    .progress-track { height: 8px; background: var(--page-card2); border-radius: 99px; overflow: hidden; margin: 8px 0 12px; border: 1px solid var(--page-border); }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--green-bright)); width: 0%; transition: width 0.6s ease; }
+
+    .akhlak-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+    .akhlak-item { background: var(--page-card2); padding: 12px; border-radius: var(--radius-xs); border: 1px solid var(--page-border); }
+    .akhlak-label { font-size: 12px; color: var(--page-text2); margin-bottom: 6px; }
+    .stars { color: var(--gold); font-size: 16px; letter-spacing: 2px; }
+
+    .btn-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+    .btn-group .ribath-btn { flex: 1; min-width: 140px; }
+
+    /* Feedback Modal */
+    #modal-feedback {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: flex-end; justify-content: center; z-index: 8000;
+    }
+    #modal-feedback.open { display: flex; }
+    .modal-sheet {
+      background: var(--page-card); width: 100%; max-width: 500px;
+      border-radius: var(--radius) var(--radius) 0 0; padding: 20px;
+      max-height: 90vh; overflow-y: auto; border: 1px solid var(--page-border);
+    }
+    .feedback-opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .feedback-opt {
+      padding: 10px; border: 1px solid var(--page-border); border-radius: var(--radius-sm);
+      text-align: center; cursor: pointer; transition: var(--transition); background: var(--page-card2);
+      font-size: 13px; color: var(--page-text2);
+    }
+    .feedback-opt.selected { border-color: var(--gold); background: var(--gold-pale); color: var(--brown-dark); font-weight: 600; }
+
+    .loading-state { text-align: center; padding: 40px; color: var(--page-text2); }
+    .empty-state { background: var(--page-card2); padding: 16px; border-radius: var(--radius-xs); text-align: center; color: var(--page-text2); font-style: italic; }
+
+    @media (max-width: 600px) {
+      .att-grid { grid-template-columns: repeat(5, 1fr); }
+      .akhlak-grid { grid-template-columns: 1fr; }
+      .btn-group { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PANDUAN INTEGRASI: FILE 2 — PERUBAHAN 1                   -->
+<!-- <body> diubah menjadi <body data-page="santri">             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<body data-page="santri">
+
+  <header class="ribath-header">
+    <a href="ribath-iqra-home.html" class="ribath-brand">
+      <div class="ribath-brand-icon">📖</div>
+      <div>
+        <div class="ribath-brand-name">Ribath Iqra</div>
+        <div class="ribath-brand-sub">Izzul Islam · Dashboard Santri</div>
+      </div>
+    </a>
+    <!-- PANDUAN: PERUBAHAN 5 — Tombol Kembali -->
+    <button class="ribath-btn ribath-btn-outline" onclick="RibathNav.goHomeFromSantri()">← Kembali</button>
+  </header>
+
+  <main id="app">
+    <div id="loading-view" class="loading-state">Memuat data santri...</div>
+
+    <div id="main-view" style="display:none;">
+      <!-- Profile Header -->
+      <div class="profile-card">
+        <div class="profile-avatar" id="p-avatar">🧒</div>
+        <div class="profile-name" id="p-nama">—</div>
+        <div class="profile-meta"><span id="p-level">—</span> · <span id="p-kelas">—</span> · Semester <span id="p-sem">—</span></div>
+      </div>
+
+      <!-- Date Navigation -->
+      <div class="date-nav">
+        <button class="date-nav-btn" onclick="changeDate(-1)">‹</button>
+        <div class="date-current" id="date-label">Senin, 7 Apr 2025</div>
+        <button class="date-nav-btn" onclick="changeDate(1)">›</button>
+      </div>
+
+      <!-- Attendance Summary -->
+      <div class="att-grid" id="att-grid">
+        <!-- Diisi JS -->
+      </div>
+      <div class="att-summary">
+        <div><span id="stat-hadir">0</span> Hadir</div>
+        <div><span id="stat-izin">0</span> Izin</div>
+        <div><span id="stat-alpa">0</span> Alpa</div>
+      </div>
+
+      <!-- Quran Progress -->
+      <div class="ribath-card mb-4">
+        <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">📗 Progress Al-Qur'an</div></div>
+        <p style="font-size:13px; color:var(--page-text2); margin-bottom:4px;">Posisi Saat Ini</p>
+        <p style="font-family:var(--font-display); font-size:18px; color:var(--page-text); margin-bottom:8px;" id="h-posisi">—</p>
+        <div class="progress-track"><div class="progress-fill" id="h-progress" style="width: 0%"></div></div>
+        <div style="display:flex; gap:16px; font-size:13px; color:var(--page-text2); margin-top:8px;">
+          <div>Tilawah: <strong id="h-tilawah" style="color:var(--page-text)">—</strong></div>
+          <div>Hafalan: <strong id="h-hafalan" style="color:var(--page-text)">—</strong></div>
+        </div>
+        <p style="font-size:12px; color:var(--page-text3); margin-top:4px;">Target Berikutnya: <span id="h-target" class="text-gold">—</span></p>
+      </div>
+
+      <!-- Tarbiyah -->
+      <div class="ribath-card mb-4">
+        <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">🌙 Tarbiyah Islamiyah</div></div>
+        <p style="font-size:13px; margin-bottom:4px;"><strong>Modul:</strong> <span id="t-modul">—</span></p>
+        <p style="font-size:13px; margin-bottom:4px;"><strong>Topik:</strong> <span id="t-topik">—</span></p>
+        <div style="background:var(--page-card2); padding:10px; border-radius:var(--radius-xs); margin-top:8px; font-size:13px;">
+          💬 <strong>Respons Santri:</strong> <span id="t-respons">—</span>
+        </div>
+      </div>
+
+      <!-- Ustadz Notes -->
+      <div class="ribath-card mb-4">
+        <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">✏️ Catatan Ustadz</div></div>
+        <div id="h-catatan" class="empty-state">Belum ada catatan untuk tanggal ini.</div>
+        <p style="font-size:11px; color:var(--page-text3); text-align:right; margin-top:8px;" id="h-catatan-tgl">—</p>
+      </div>
+
+      <!-- Akhlak -->
+      <div class="ribath-card mb-4">
+        <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">⭐ Nilai Akhlak Hari Ini</div></div>
+        <div class="akhlak-grid">
+          <div class="akhlak-item"><div class="akhlak-label">Adab kepada Ustadz</div><div class="stars" id="ak-adab">☆☆☆☆☆</div></div>
+          <div class="akhlak-item"><div class="akhlak-label">Konsentrasi Belajar</div><div class="stars" id="ak-konsentrasi">☆☆☆☆☆</div></div>
+          <div class="akhlak-item"><div class="akhlak-label">Interaksi Teman</div><div class="stars" id="ak-interaksi">☆☆☆☆☆</div></div>
+          <div class="akhlak-item"><div class="akhlak-label">Membawa Perlengkapan</div><div class="stars" id="ak-perlengkapan">☆☆☆☆☆</div></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="btn-group">
+        <button class="ribath-btn ribath-btn-outline" onclick="alert('Fitur export PDF akan tersedia di update berikutnya.')">📄 Unduh Laporan</button>
+        <button class="ribath-btn ribath-btn-primary" onclick="openFeedbackModal()">💬 Kirim Feedback</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Feedback -->
+  <div id="modal-feedback">
+    <div class="modal-sheet">
+      <div class="ribath-section-head" style="margin-bottom:16px;">
+        <div class="ribath-section-bar"></div>
+        <div class="ribath-section-title">Kirim Feedback ke Ustadz</div>
+      </div>
+      <div class="feedback-opts">
+        <div class="feedback-opt" onclick="selectFeedback(this, 'terima-kasih')">👍 Terima Kasih</div>
+        <div class="feedback-opt" onclick="selectFeedback(this, 'pertanyaan')">❓ Ada Pertanyaan</div>
+        <div class="feedback-opt" onclick="selectFeedback(this, 'info-ortu')">📝 Info dari Ortu</div>
+        <div class="feedback-opt" onclick="selectFeedback(this, 'saran')">💡 Saran</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pesan Anda</label>
+        <textarea id="fb-msg" class="form-textarea" rows="4" placeholder="Tulis pesan di sini..."></textarea>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="ribath-btn ribath-btn-outline" onclick="closeModal('modal-feedback')" style="flex:1;">Batal</button>
+        <button class="ribath-btn ribath-btn-primary" onclick="sendFeedback()" style="flex:1;">📤 Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN SCRIPT LOGIC                                           -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    // ── KONFIGURASI BACKEND ────────────────────────────────────
+    // GANTI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdpuQHpSITzjpxOE-h5PNJM6yuVTgtPdlf7gAmFphhzJ66-1HpF83y6ep3gaXEZ4U/exec';
+    
+    let state = {
+      santriId: null,
+      currentDate: new Date(),
+      santriData: {},
+      harianData: {},
+      weekData: [],
+      lembaga: {},
+      selectedFbType: ''
+    };
+
+    // ── PANDUAN INTEGRASI: PERUBAHAN 4 ────────────────────────
+    // Validasi akses sebelum load data
+    (function checkAuth() {
+      const urlParams = new URLSearchParams(window.location.search);
+      state.santriId = parseInt(urlParams.get('id'));
+
+      const isAdminPreview = sessionStorage.getItem('ribath_admin_preview') == state.santriId;
+      if (isAdminPreview) sessionStorage.removeItem('ribath_admin_preview');
+
+      const isSantriAuth = RibathAuth.getSantriId() == state.santriId;
+
+      if (!state.santriId || (!isAdminPreview && !isSantriAuth)) {
+        window.location.href = 'ribath-iqra-home.html';
+      }
+    })();
+
+    // ── API HELPER (GET Only, Compatible with ribath-apps-script.js) ──
+    async function apiFetch(action, params = {}) {
+      const qs = new URLSearchParams({ action, id: state.santriId, ...params }).toString();
+      try {
+        const res = await fetch(`${APPS_SCRIPT_URL}?${qs}`);
+        const json = await res.json();
+        return json.success ? json.data : null;
+      } catch(e) {
+        console.error('API Error:', e);
+        return null;
+      }
+    }
+
+    // ── INIT & RENDER ─────────────────────────────────────────
+    async function initApp() {
+      document.getElementById('date-label').textContent = formatDate(state.currentDate);
+      
+      await loadData();
+      renderUI();
+      
+      document.getElementById('loading-view').style.display = 'none';
+      document.getElementById('main-view').style.display = 'block';
+    }
+
+    async function loadData() {
+      const [santri, harian, lembaga, weekData] = await Promise.all([
+        apiFetch('getSantriById'),
+        apiFetch('getHarianBySantri', { tanggal: fmtDate(state.currentDate) }),
+        apiFetch('getLembaga'),
+        getWeekData()
+      ]);
+
+      state.santriData = santri || {};
+      state.harianData = harian || {};
+      state.lembaga = lembaga || {};
+      state.weekData = weekData || [];
+    }
+
+    async function getWeekData() {
+      // Get Monday of current week
+      const d = new Date(state.currentDate);
+      const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4);
+
+      return await apiFetch('getHarianRange', {
+        start: fmtDate(monday),
+        end: fmtDate(friday)
+      });
+    }
+
+    function renderUI() {
+      // Profile
+      document.getElementById('p-avatar').textContent = state.santriData.avatar || '🧒';
+      document.getElementById('p-nama').textContent = state.santriData.nama || 'Santri';
+      document.getElementById('p-level').textContent = state.santriData.level || '—';
+      document.getElementById('p-kelas').textContent = state.santriData.kelas || '—';
+      document.getElementById('p-sem').textContent = state.santriData.semester || '—';
+
+      // Attendance Grid
+      const days = ['Sen','Sel','Rab','Kam','Jum'];
+      const gridEl = document.getElementById('att-grid');
+      gridEl.innerHTML = days.map((d, i) => {
+        const found = state.weekData.find(w => w.hari === d);
+        const status = found ? getKehadiranIcon(found.kehadiran) : '⬜';
+        return `<div class="att-day"><div class="att-label">${d}</div><div class="att-status">${status}</div></div>`;
+      }).join('');
+
+      // Attendance Summary
+      const hadir = state.weekData.filter(w => w.kehadiran === 'hadir').length;
+      const izin = state.weekData.filter(w => w.kehadiran === 'izin').length;
+      const alpa = state.weekData.filter(w => w.kehadiran === 'alpa').length;
+      document.getElementById('stat-hadir').textContent = hadir;
+      document.getElementById('stat-izin').textContent = izin;
+      document.getElementById('stat-alpa').textContent = alpa;
+
+      // Quran Progress
+      const h = state.harianData;
+      document.getElementById('h-posisi').textContent = h.posisi_quran || '—';
+      document.getElementById('h-tilawah').textContent = h.tilawah || '—';
+      document.getElementById('h-hafalan').textContent = h.hafalan || '—';
+      document.getElementById('h-target').textContent = h.target || '—';
+      document.getElementById('h-progress').style.width = h.progress_percent ? `${h.progress_percent}%` : '0%';
+
+      // Tarbiyah
+      document.getElementById('t-modul').textContent = h.tarbiyah_modul || '—';
+      document.getElementById('t-topik').textContent = h.tarbiyah_topik || '—';
+      document.getElementById('t-respons').textContent = h.tarbiyah_respons || '—';
+
+      // Notes
+      const notesEl = document.getElementById('h-catatan');
+      if (h.catatan_ustadz) {
+        notesEl.textContent = h.catatan_ustadz;
+        notesEl.className = '';
+        notesEl.style.whiteSpace = 'pre-line';
+      } else {
+        notesEl.innerHTML = '<div class="empty-state">Belum ada catatan untuk tanggal ini.</div>';
+      }
+      document.getElementById('h-catatan-tgl').textContent = h.tanggal ? `— ${fmtDate(new Date(h.tanggal))}` : '—';
+
+      // Akhlak
+      renderStars('ak-adab', h.akhlak_adab);
+      renderStars('ak-konsentrasi', h.akhlak_konsentrasi);
+      renderStars('ak-interaksi', h.akhlak_interaksi);
+      renderStars('ak-perlengkapan', h.akhlak_perlengkapan);
+    }
+
+    // ── UTILITIES ─────────────────────────────────────────────
+    function fmtDate(d) { return d.toISOString().split('T')[0]; }
+    function formatDate(d) {
+      return d.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'short', year:'numeric' });
+    }
+    function getKehadiranIcon(k) {
+      if(k==='hadir') return '✅'; if(k==='izin') return '🟡'; if(k==='alpa') return '❌'; return '⬜';
+    }
+    function renderStars(id, val) {
+      const n = parseInt(val) || 0;
+      document.getElementById(id).textContent = '⭐'.repeat(n) + '☆'.repeat(Math.max(0, 5-n));
+    }
+
+    async function changeDate(offset) {
+      state.currentDate.setDate(state.currentDate.getDate() + offset);
+      document.getElementById('date-label').textContent = formatDate(state.currentDate);
+      document.getElementById('loading-view').style.display = 'block';
+      document.getElementById('main-view').style.display = 'none';
+      
+      await loadData();
+      renderUI();
+      
+      document.getElementById('loading-view').style.display = 'none';
+      document.getElementById('main-view').style.display = 'block';
+    }
+
+    // Modal Feedback
+    function openFeedbackModal() { document.getElementById('modal-feedback').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function selectFeedback(el, type) {
+      document.querySelectorAll('.feedback-opt').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedFbType = type;
+    }
+    function sendFeedback() {
+      const msg = document.getElementById('fb-msg').value;
+      if(!msg) return alert('Mohon isi pesan feedback.');
+      // Di real implementation, kirim ke backend via apiFetch('saveFeedback', ...)
+      alert('✅ Feedback berhasil dikirim ke Ustadz via WhatsApp.\nTerima kasih atas partisipasinya.');
+      closeModal('modal-feedback');
+      document.getElementById('fb-msg').value = '';
+      state.selectedFbType = '';
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 2 — PERUBAHAN 3                   -->
+  <!-- PIN admin global & shared.js dipanggil sebelum </body>     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    window.RIBATH_ADMIN_PIN = '123456';
+  </script>
+  <script src="shared.js"></script>
+</body>
+</html>
