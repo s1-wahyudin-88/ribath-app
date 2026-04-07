@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Publik — Ribath Iqra Izzul Islam</title>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 1 — PERUBAHAN 2                   -->
+  <!-- theme.css harus dipanggil SEBELUM tag <style> lokal        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <link rel="stylesheet" href="theme.css">
+  
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       LAYOUT HOME PUBLIK (Overrides & Specifics)
+       ═══════════════════════════════════════════════════════════ */
+    #app { max-width: 900px; margin: 0 auto; padding: 0 16px 40px; }
+    
+    .hero-section { text-align: center; padding: 32px 16px 24px; }
+    .hero-title {
+      font-family: var(--font-display); font-size: 26px; font-weight: 700;
+      color: var(--page-text); margin-bottom: 6px;
+    }
+    .hero-sub { font-size: 13px; color: var(--page-text2); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0; }
+    .stat-card {
+      background: var(--page-card); padding: 16px 12px; border-radius: var(--radius);
+      border: 1px solid var(--page-border); text-align: center; box-shadow: var(--page-shadow);
+    }
+    .stat-val { font-size: 22px; font-weight: 700; color: var(--gold); font-family: var(--font-display); margin-bottom: 2px; }
+    .stat-label { font-size: 11px; color: var(--page-text2); }
+
+    .chart-container { height: 100px; display: flex; align-items: flex-end; justify-content: space-around; padding: 8px 0; gap: 4px; }
+    .chart-bar {
+      flex: 1; max-width: 32px; background: linear-gradient(to top, var(--green), var(--green-bright));
+      border-radius: 4px 4px 0 0; transition: height 0.6s ease; position: relative;
+    }
+    .chart-bar:hover::after {
+      content: attr(data-val); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: var(--brown-darkest); color: #fff; padding: 2px 6px; border-radius: 4px;
+      font-size: 10px; margin-bottom: 4px; white-space: nowrap;
+    }
+
+    .santri-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 12px; }
+    .santri-card {
+      background: var(--page-card); border: 1px solid var(--page-border); border-radius: var(--radius-sm);
+      padding: 16px 10px; text-align: center; cursor: pointer; transition: var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .santri-card:hover { transform: translateY(-3px); box-shadow: var(--page-shadow-md); border-color: var(--gold); }
+    .santri-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light)); opacity: 0; transition: opacity 0.2s;
+    }
+    .santri-card:hover::before { opacity: 1; }
+    .santri-avatar {
+      width: 44px; height: 44px; border-radius: 50%; background: var(--green-light);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 18px;
+    }
+    .santri-name { font-weight: 600; font-size: 13px; color: var(--page-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .santri-level { font-size: 10px; color: var(--page-text3); background: var(--page-card2); padding: 2px 8px; border-radius: 99px; display: inline-block; }
+
+    .kalender-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .kalender-item {
+      display: flex; align-items: center; gap: 12px; background: var(--page-card2);
+      padding: 10px 12px; border-radius: var(--radius-xs); border-left: 3px solid var(--gold);
+    }
+    .kalender-date { font-size: 10px; color: var(--page-text3); font-weight: 500; text-align: center; line-height: 1.2; }
+    .kalender-title { font-size: 13px; font-weight: 600; color: var(--page-text); }
+
+    .empty-msg { text-align: center; padding: 24px; color: var(--page-text3); font-style: italic; }
+    .loading-overlay {
+      position: fixed; inset: 0; background: var(--page-bg); display: flex;
+      align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s;
+    }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--page-border); border-top-color: var(--gold); border-radius: 50%; animation: _spin 1s linear infinite; }
+    @keyframes _spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .santri-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PANDUAN INTEGRASI: FILE 1 — PERUBAHAN 1                   -->
+<!-- <body> diubah menjadi <body data-page="home">              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<body data-page="home">
+
+  <header class="ribath-header">
+    <a href="ribath-iqra-home.html" class="ribath-brand">
+      <div class="ribath-brand-icon">📖</div>
+      <div>
+        <div class="ribath-brand-name">Ribath Iqra</div>
+        <div class="ribath-brand-sub">Izzul Islam · Johar Baru</div>
+      </div>
+    </a>
+    <!-- Floating nav akan di-injek otomatis oleh shared.js -->
+  </header>
+
+  <div id="loading-overlay" class="loading-overlay"><div class="spinner"></div></div>
+
+  <!-- Announcement Strip -->
+  <div class="ribath-ann-strip" id="ann-strip" style="display:none;">
+    <span style="font-size:14px;">📢</span>
+    <div class="ribath-ann-text" id="ann-text">Memuat pengumuman...</div>
+  </div>
+
+  <main id="app" style="display:none;">
+    <div class="hero-section">
+      <h1 class="hero-title">Dashboard Publik</h1>
+      <p class="hero-sub" id="lembaga-sub">Memuat info lembaga...</p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" id="stat-santri">—</div><div class="stat-label">👦 Santri Aktif</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-hadir">—</div><div class="stat-label">📅 Rata Kehadiran</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-hafalan">—</div><div class="stat-label">📖 Hafalan Baru</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-khatam">—</div><div class="stat-label">🏆 Khatam Juz 30</div></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="ribath-card mb-4">
+      <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">📊 Kehadiran Harian (7 Hari Terakhir)</div></div>
+      <div class="chart-container" id="chart-kehadiran"></div>
+    </div>
+
+    <!-- Kalender -->
+    <div class="ribath-card mb-4">
+      <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">📅 Kalender Pembelajaran</div></div>
+      <div id="kalender-list" class="kalender-list"><div class="empty-msg">Memuat kalender...</div></div>
+    </div>
+
+    <!-- Daftar Santri -->
+    <div class="ribath-card">
+      <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">👦 Pilih Santri untuk Lihat Progress</div></div>
+      <p style="font-size:12px; color:var(--page-text2); margin-bottom:12px;">Klik nama santri, masukkan PIN 4 digit yang diberikan ustadz.</p>
+      <div id="santri-grid" class="santri-grid"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="ribath-footer" id="footer-info">
+      <strong id="footer-nama">Ribath Iqra Izzul Islam</strong>
+      <p id="footer-detail">WA: — · IG: —</p>
+    </footer>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN SCRIPT LOGIC                                           -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    // ── KONFIGURASI BACKEND ────────────────────────────────────
+    // GANTI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdpuQHpSITzjpxOE-h5PNJM6yuVTgtPdlf7gAmFphhzJ66-1HpF83y6ep3gaXEZ4U/exec';
+    
+    // State Aplikasi Publik
+    const state = {
+      santri: [],
+      stats: {},
+      kalender: [],
+      pengumuman: '',
+      lembaga: {}
+    };
+
+    // ── API HELPER (GET Only, Public Endpoints) ────────────────
+    async function apiFetch(action) {
+      try {
+        const res = await fetch(`${APPS_SCRIPT_URL}?action=${action}`);
+        const json = await res.json();
+        return json.success ? json.data : null;
+      } catch(e) {
+        console.warn('API Gagal:', action, e);
+        return null;
+      }
+    }
+
+    // ── INIT & RENDER ─────────────────────────────────────────
+    async function initApp() {
+      const [lembaga, stats, santri, kalender, peng] = await Promise.all([
+        apiFetch('getLembaga'),
+        apiFetch('getStatistik'),
+        apiFetch('getListSantri'),
+        apiFetch('getKalender'),
+        apiFetch('getPengumuman')
+      ]);
+
+      state.lembaga = lembaga || {};
+      state.stats   = stats || {};
+      state.santri  = santri || [];
+      state.kalender = kalender || [];
+      state.pengumuman = peng?.teks || '';
+
+      renderUI();
+
+      document.getElementById('loading-overlay').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+      }, 300);
+    }
+
+    function renderUI() {
+      // Lembaga & Footer
+      document.getElementById('lembaga-sub').textContent = state.lembaga.alamat || 'Masjid Izzul Islam · Johar Baru, Jakarta Pusat';
+      document.getElementById('footer-nama').textContent = state.lembaga.nama || 'Ribath Iqra Izzul Islam';
+      const wa = state.lembaga.wa || '—';
+      const ig = state.lembaga.instagram || '—';
+      document.getElementById('footer-detail').textContent = `WA: ${wa} · IG: ${ig}`;
+
+      // Stats
+      document.getElementById('stat-santri').textContent = state.stats.santri_aktif || state.santri.length || '0';
+      document.getElementById('stat-hadir').textContent = state.stats.rata_kehadiran ? `${state.stats.rata_kehadiran}%` : '—';
+      document.getElementById('stat-hafalan').textContent = state.stats.hafalan_baru || '0';
+      document.getElementById('stat-khatam').textContent = state.stats.khatam_juz30 || '0';
+
+      // Pengumuman
+      if(state.pengumuman) {
+        document.getElementById('ann-strip').style.display = 'flex';
+        document.getElementById('ann-text').textContent = state.pengumuman;
+      }
+
+      // Kalender
+      const kalEl = document.getElementById('kalender-list');
+      if(state.kalender.length === 0) {
+        kalEl.innerHTML = '<div class="empty-msg">Belum ada event terjadwal.</div>';
+      } else {
+        kalEl.innerHTML = state.kalender.slice(0, 4).map(k => `
+          <div class="kalender-item">
+            <div class="kalender-date">${k.icon || '📅'}<br>${k.hari || k.tanggal}</div>
+            <div><div class="kalender-title">${k.judul}</div><div style="font-size:11px;color:var(--page-text3)">${k.bulan || ''}</div></div>
+          </div>
+        `).join('');
+      }
+
+      // Chart (Visualisasi Sederhana)
+      const chartEl = document.getElementById('chart-kehadiran');
+      const days = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+      chartEl.innerHTML = days.map((d, i) => {
+        const h = 40 + Math.random() * 50; // Dummy height, bisa diganti data real dari backend
+        return `<div class="chart-bar" style="height:${h}%" data-val="${Math.round(h)}%"></div>`;
+      }).join('');
+
+      // Santri Grid
+      const gridEl = document.getElementById('santri-grid');
+      if(state.santri.length === 0) {
+        gridEl.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Data santri belum tersedia.</div>';
+      } else {
+        gridEl.innerHTML = state.santri.map(s => `
+          <div class="santri-card" onclick="openPin(${s.id})">
+            <div class="santri-avatar">${s.avatar || '🧒'}</div>
+            <div class="santri-name">${s.nama}</div>
+            <span class="santri-level">${s.level || 'Iqra'}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // PANDUAN INTEGRASI: FILE 1 — PERUBAHAN 4
+    // Ganti fungsi openPin() lama dengan versi ini
+    // ══════════════════════════════════════════════════════════════
+    function openPin(id) {
+      const s = state.santri.find(x => x.id === id);
+      if (!s) return;
+      RibathNav.goSantriFromHome(s.id, s.nama, s.pin);
+    }
+
+    // Init saat DOM ready
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 1 — PERUBAHAN 3                   -->
+  <!-- PIN admin global & shared.js dipanggil sebelum </body>     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    window.RIBATH_ADMIN_PIN = '123456';
+  </script>
+  <script src="shared.js"></script>
+</body>
+</html>
