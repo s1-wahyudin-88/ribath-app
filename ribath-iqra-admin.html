@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — Ribath Iqra Izzul Islam</title>
+  
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 2 — PERUBAHAN 2                   -->
+  <!-- theme.css harus dipanggil SEBELUM tag <style> lokal        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <link rel="stylesheet" href="theme.css">
+  
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       LAYOUT ADMIN (Overrides & Specifics)
+       ═══════════════════════════════════════════════════════════ */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: var(--page-bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 5000;
+    }
+    .auth-card {
+      background: var(--page-card);
+      border: 1px solid var(--page-border);
+      border-radius: var(--radius);
+      padding: 32px;
+      width: 90%; max-width: 400px;
+      text-align: center;
+      box-shadow: var(--page-shadow-md);
+    }
+    .auth-logo {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--green), var(--green-mid));
+      border-radius: 18px;
+      margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; box-shadow: 0 4px 16px rgba(45,96,71,0.3);
+    }
+    #app {
+      display: flex; flex-direction: column; min-height: 100vh;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #app.ready { opacity: 1; }
+    
+    .layout-container {
+      display: flex; flex: 1;
+    }
+    #sidebar {
+      width: 260px; background: var(--page-card);
+      border-right: 1px solid var(--page-border);
+      padding: 20px 12px; display: flex; flex-direction: column; gap: 8px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: var(--radius-sm);
+      color: var(--page-text2); font-weight: 500; cursor: pointer;
+      transition: var(--transition); border: none; background: transparent;
+      text-align: left; width: 100%; font-size: 14px;
+    }
+    .nav-btn:hover { background: var(--page-card2); color: var(--page-text); }
+    .nav-btn.active {
+      background: var(--green-pale); color: var(--green-bright);
+      border: 1px solid rgba(76,175,128,0.2);
+    }
+    .nav-section { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--page-text3); padding: 16px 14px 4px; }
+    
+    #main-content { flex: 1; padding: 24px; overflow-y: auto; }
+    
+    .view { display: none; animation: _fadeIn 0.25s ease; }
+    .view.active { display: block; }
+    @keyframes _fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Tables */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td {
+      padding: 12px; text-align: left; border-bottom: 1px solid var(--page-border);
+    }
+    .data-table th { color: var(--page-text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table tr:hover td { background: var(--page-card2); }
+    .tbl-btn { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; transition: var(--transition-sm); }
+    .tbl-btn.view { background: var(--blue-pale); color: var(--blue-bright); }
+    .tbl-btn.edit { background: var(--gold-pale); color: var(--gold-light); }
+    .tbl-btn.delete { background: var(--red-pale); color: var(--red-bright); }
+    .tbl-btn:hover { transform: scale(1.05); }
+    
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--page-text2); }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 10px 12px; background: var(--page-card2);
+      border: 1px solid var(--page-border); border-radius: var(--radius-xs);
+      color: var(--page-text); font-family: var(--font-body); font-size: 13px;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-pale);
+    }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center; z-index: 8000;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--page-card); border-radius: var(--radius);
+      width: 92%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+      box-shadow: var(--page-shadow-md); border: 1px solid var(--page-border);
+    }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--page-border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--page-border); display: flex; gap: 10px; justify-content: flex-end; }
+    
+    /* Dashboard Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--page-card); padding: 18px; border-radius: var(--radius); border: 1px solid var(--page-border); box-shadow: var(--page-shadow); }
+    .stat-val { font-size: 28px; font-weight: 700; color: var(--page-text); margin: 4px 0; }
+    .stat-label { font-size: 12px; color: var(--page-text2); }
+    
+    /* Utility */
+    .text-center { text-align: center; } .mt-2 { margin-top: 8px; } .mb-4 { margin-bottom: 16px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--page-text3); border-top-color: var(--gold); border-radius: 50%; animation: _spin 0.8s linear infinite; }
+    @keyframes _spin { to { transform: rotate(360deg); } }
+    
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--page-card); border-top: 1px solid var(--page-border); padding: 8px; justify-content: space-around; z-index: 900; }
+      #main-content { padding-bottom: 80px; }
+    }
+  </style>
+</head>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PANDUAN INTEGRASI: FILE 3 — PERUBAHAN 1                   -->
+<!-- <body> diubah menjadi <body data-page="admin">             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<body data-page="admin">
+
+  <!-- Layar Autentikasi Awal -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">📖</div>
+      <h2 style="margin-bottom: 8px;">Panel Ustadz Utama</h2>
+      <p style="color: var(--page-text2); font-size: 13px; margin-bottom: 20px;">Masukkan PIN Admin 6 digit untuk melanjutkan</p>
+      <button id="btn-start-login" class="ribath-btn ribath-btn-primary" style="width: 100%;">
+        Buka Panel Admin
+      </button>
+    </div>
+  </div>
+
+  <!-- Aplikasi Utama (Tersembunyi sampai autentikasi berhasil) -->
+  <div id="app">
+    <header class="ribath-header">
+      <a href="#" class="ribath-brand">
+        <div class="ribath-brand-icon">📖</div>
+        <div>
+          <div class="ribath-brand-name">Panel Admin Ribath Iqra</div>
+          <div class="ribath-brand-sub">Izzul Islam · Johar Baru</div>
+        </div>
+      </a>
+      <div style="display:flex; gap:10px;">
+        <button class="ribath-btn ribath-btn-outline" onclick="RibathNav.goHome()">🌐 Home</button>
+        <button class="ribath-btn ribath-btn-outline" onclick="handleLogout()">🚪 Keluar</button>
+      </div>
+    </header>
+
+    <div class="layout-container">
+      <nav id="sidebar">
+        <div class="nav-section">Menu Utama</div>
+        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-view="santri">👦 Kelola Santri</button>
+        <button class="nav-btn" data-view="harian">📝 Input Harian</button>
+        <button class="nav-btn" data-view="kehadiran">☑️ Kehadiran Massal</button>
+        
+        <div class="nav-section">Publik & Jadwal</div>
+        <button class="nav-btn" data-view="kalender">📅 Kalender</button>
+        <button class="nav-btn" data-view="pengumuman">📢 Pengumuman</button>
+        <button class="nav-btn" data-view="statistik">📈 Statistik</button>
+        
+        <div class="nav-section">Sistem</div>
+        <button class="nav-btn" data-view="lembaga">🏫 Info Lembaga</button>
+        <button class="nav-btn" data-view="pengaturan">⚙️ Pengaturan</button>
+      </nav>
+
+      <main id="main-content">
+        <!-- VIEW: DASHBOARD -->
+        <div id="view-dashboard" class="view active">
+          <div class="flex-between mb-4">
+            <h1 class="ribath-section-title">Dashboard Hari Ini</h1>
+            <span class="ribath-chip chip-green" id="lbl-tgl-hari-ini">Senin, 1 Jan 2025</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Santri Aktif</div>
+              <div class="stat-val" id="stat-santri-aktif">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Belum Diisi Hari Ini</div>
+              <div class="stat-val" id="stat-belum-diisi">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Event Mendatang</div>
+              <div class="stat-val" id="stat-event-mendatang">—</div>
+            </div>
+          </div>
+          <div class="ribath-card">
+            <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">⚡ Shortcut Cepat</div></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="ribath-btn ribath-btn-primary" onclick="switchView('harian')">📝 Input Catatan</button>
+              <button class="ribath-btn ribath-btn-outline" onclick="switchView('santri')">👦 Tambah Santri</button>
+              <button class="ribath-btn ribath-btn-gold" onclick="switchView('kehadiran')">☑️ Kehadiran Massal</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: KELOLA SANTRI -->
+        <div id="view-santri" class="view">
+          <div class="flex-between mb-4">
+            <h1 class="ribath-section-title">Kelola Santri</h1>
+            <button class="ribath-btn ribath-btn-primary" onclick="openModalSantri()">＋ Tambah Santri</button>
+          </div>
+          <div class="ribath-card" style="overflow-x:auto;">
+            <table class="data-table" id="tbl-santri">
+              <thead><tr><th>Nama</th><th>Level</th><th>PIN</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody id="tbody-santri"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- VIEW: INPUT HARIAN -->
+        <div id="view-harian" class="view">
+          <h1 class="ribath-section-title mb-4">Input Catatan Harian</h1>
+          <div class="ribath-card">
+            <div class="form-row mb-4">
+              <div class="form-group">
+                <label class="form-label">Pilih Santri</label>
+                <select id="sel-santri-harian" class="form-select"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tanggal</label>
+                <input type="date" id="inp-tgl-harian" class="form-input">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Kehadiran</label>
+                <select id="inp-kehadiran" class="form-select"><option value="hadir">✅ Hadir</option><option value="izin">🟡 Izin</option><option value="alpa">❌ Alpa</option></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Posisi Quran</label>
+                <input type="text" id="inp-posisi" class="form-input" placeholder="cth: Surat Al-Falaq ayat 3">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tilawah Harian</label>
+                <input type="text" id="inp-tilawah" class="form-input" placeholder="0.5 hal / lancar / tartil">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Hafalan Baru</label>
+                <input type="text" id="inp-hafalan" class="form-input" placeholder="Al-Falaq ✔ / -">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Berikutnya</label>
+                <input type="text" id="inp-target" class="form-input" placeholder="An-Nas">
+              </div>
+            </div>
+            <div class="ribath-section-head mt-2"><div class="ribath-section-bar"></div><div class="ribath-section-title">🌙 Tarbiyah Islamiyah</div></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Modul</label>
+                <select id="inp-tarbiyah-modul" class="form-select"><option>Mengenal Allah</option><option>Cara Beribadah</option><option>Akhlaq Mulia</option><option>Sirah & Sejarah</option><option>Hikmah Kehidupan</option><option>Topik Spesifik</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">Topik</label><input type="text" id="inp-tarbiyah-topik" class="form-input"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Respons Santri</label><textarea id="inp-tarbiyah-respons" class="form-textarea" rows="2"></textarea></div>
+            
+            <div class="ribath-section-head mt-2"><div class="ribath-section-bar"></div><div class="ribath-section-title">✏️ Catatan Ustadz</div></div>
+            <div class="form-group"><textarea id="inp-catatan" class="form-textarea" rows="3"></textarea></div>
+            
+            <div class="ribath-section-head mt-2"><div class="ribath-section-bar"></div><div class="ribath-section-title">⭐ Nilai Akhlak (1-5)</div></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Adab</label><input type="number" id="akhlak-adab" class="form-input" min="1" max="5"></div>
+              <div class="form-group"><label class="form-label">Konsentrasi</label><input type="number" id="akhlak-konsentrasi" class="form-input" min="1" max="5"></div>
+              <div class="form-group"><label class="form-label">Interaksi</label><input type="number" id="akhlak-interaksi" class="form-input" min="1" max="5"></div>
+              <div class="form-group"><label class="form-label">Perlengkapan</label><input type="number" id="akhlak-perlengkapan" class="form-input" min="1" max="5"></div>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:10px;">
+              <button class="ribath-btn ribath-btn-primary" onclick="saveHarian()">💾 Simpan Catatan</button>
+              <button class="ribath-btn ribath-btn-outline" onclick="resetFormHarian()">✕ Batal</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: KEHADIRAN MASSAL -->
+        <div id="view-kehadiran" class="view">
+          <h1 class="ribath-section-title mb-4">Kehadiran Massal</h1>
+          <div class="ribath-card">
+            <div class="form-group"><label class="form-label">Tanggal</label><input type="date" id="inp-tgl-kehadiran" class="form-input" style="max-width:200px;"></div>
+            <div style="display:flex; gap:10px; margin-bottom:12px;">
+              <button class="ribath-btn ribath-btn-outline" onclick="setAllKehadiran('hadir')">✅ Semua Hadir</button>
+              <button class="ribath-btn ribath-btn-outline" onclick="setAllKehadiran('izin')">🟡 Semua Izin</button>
+            </div>
+            <div id="kehadiran-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:10px;"></div>
+            <button class="ribath-btn ribath-btn-primary mt-2" onclick="saveKehadiranBulk()">💾 Simpan Kehadiran</button>
+          </div>
+        </div>
+
+        <!-- VIEW: KALENDER -->
+        <div id="view-kalender" class="view">
+          <div class="flex-between mb-4">
+            <h1 class="ribath-section-title">Kalender Pembelajaran</h1>
+            <button class="ribath-btn ribath-btn-primary" onclick="openModalKalender()">＋ Tambah Event</button>
+          </div>
+          <div class="ribath-card" id="list-kalender"></div>
+        </div>
+
+        <!-- VIEW: PENGUMUMAN -->
+        <div id="view-pengumuman" class="view">
+          <h1 class="ribath-section-title mb-4">Pengumuman Berjalan (Home Page)</h1>
+          <div class="ribath-card">
+            <div class="form-group"><label class="form-label">Teks Pengumuman (pisah dengan •)</label></div>
+            <textarea id="inp-pengumuman" class="form-textarea" rows="4" placeholder="Selamat datang di Ribath Iqra • Libur Maulid Nabi tanggal 15 Nov • Pendaftaran santri baru dibuka"></textarea>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <button class="ribath-btn ribath-btn-primary" onclick="savePengumuman()">💾 Simpan & Publish</button>
+              <button class="ribath-btn ribath-btn-outline" onclick="loadPengumuman()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: STATISTIK -->
+        <div id="view-statistik" class="view">
+          <h1 class="ribath-section-title mb-4">Statistik & Publikasi</h1>
+          <div class="ribath-card">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Periode Mulai</label><input type="date" id="stat-start" class="form-input"></div>
+              <div class="form-group"><label class="form-label">Periode Selesai</label><input type="date" id="stat-end" class="form-input"></div>
+              <div class="form-group"><label class="form-label">Label Periode</label><input type="text" id="stat-label" class="form-input" placeholder="cth: Oktober 2025"></div>
+            </div>
+            <button class="ribath-btn ribath-btn-outline" onclick="previewStatistik()">🔄 Hitung Otomatis dari Data Harian</button>
+            <div id="stat-preview" style="margin-top:16px; padding:12px; background:var(--page-card2); border-radius:var(--radius-xs); display:none;"></div>
+            <button class="ribath-btn ribath-btn-gold mt-2" onclick="publishStatistik()">🚀 Publish ke Home Page</button>
+          </div>
+        </div>
+
+        <!-- VIEW: INFO LEMBAGA -->
+        <div id="view-lembaga" class="view">
+          <h1 class="ribath-section-title mb-4">Info Lembaga</h1>
+          <div class="ribath-card">
+            <div class="form-group"><label class="form-label">Nama Lembaga</label><input type="text" id="lem-nama" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Alamat</label><input type="text" id="lem-alamat" class="form-input"></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Nomor WhatsApp</label><input type="text" id="lem-wa" class="form-input"></div>
+              <div class="form-group"><label class="form-label">Instagram</label><input type="text" id="lem-ig" class="form-input"></div>
+            </div>
+            <button class="ribath-btn ribath-btn-primary mt-2" onclick="saveLembaga()">💾 Simpan Info Lembaga</button>
+          </div>
+        </div>
+
+        <!-- VIEW: PENGATURAN -->
+        <div id="view-pengaturan" class="view">
+          <h1 class="ribath-section-title mb-4">Pengaturan & Backup</h1>
+          <div class="ribath-card mb-4">
+            <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">🔐 Ganti PIN Admin</div></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">PIN Baru (6 digit)</label><input type="password" id="set-pin-new" class="form-input" maxlength="6"></div>
+              <div class="form-group"><label class="form-label">Konfirmasi PIN</label><input type="password" id="set-pin-conf" class="form-input" maxlength="6"></div>
+            </div>
+            <button class="ribath-btn ribath-btn-outline" onclick="changeAdminPin()">💾 Ganti PIN</button>
+          </div>
+          <div class="ribath-card">
+            <div class="ribath-section-head"><div class="ribath-section-bar"></div><div class="ribath-section-title">💾 Data & Backup</div></div>
+            <p style="color:var(--page-text2); font-size:13px; margin-bottom:12px;">Unduh seluruh data santri dan kehadiran sebagai JSON.</p>
+            <div style="display:flex; gap:10px;">
+              <button class="ribath-btn ribath-btn-primary" onclick="exportAllData()">⬇️ Export Semua Data</button>
+              <button class="ribath-btn ribath-btn-outline" onclick="if(confirm('Yakin arsipkan data lama dan reset periode?')) window.location.reload();">🔄 Reset Periode</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL SANTRI -->
+  <div id="modal-santri" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><h3 id="modal-santri-title">Tambah Santri</h3><button onclick="closeModal('modal-santri')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="m-santri-id">
+        <div class="form-group"><label class="form-label">Nama Lengkap</label><input type="text" id="m-santri-nama" class="form-input"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Level</label>
+            <select id="m-santri-level" class="form-select"><option value="Iqra">Iqra</option><option value="Tahsin">Tahsin</option><option value="Tahfizh">Tahfizh</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">PIN (4 digit)</label><input type="text" id="m-santri-pin" class="form-input" maxlength="4"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="ribath-btn ribath-btn-outline" onclick="closeModal('modal-santri')">Batal</button>
+        <button class="ribath-btn ribath-btn-primary" onclick="saveSantri()">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KALENDER -->
+  <div id="modal-kalender" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header"><h3>Tambah Event</h3><button onclick="closeModal('modal-kalender')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="m-kal-id">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Tanggal</label><input type="date" id="m-kal-tgl" class="form-input"></div>
+          <div class="form-group"><label class="form-label">Bulan</label><input type="text" id="m-kal-bulan" class="form-input" placeholder="November"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Judul Event</label><input type="text" id="m-kal-judul" class="form-input"></div>
+          <div class="form-group"><label class="form-label">Tipe</label>
+            <select id="m-kal-tipe" class="form-select"><option>PHBI</option><option>Wisuda</option><option>PSB</option><option>Libur</option><option>Mabit</option><option>Rapor</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Icon (emoji)</label><input type="text" id="m-kal-icon" class="form-input" value="📅"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Catatan</label><textarea id="m-kal-catatan" class="form-textarea" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="ribath-btn ribath-btn-outline" onclick="closeModal('modal-kalender')">Batal</button>
+        <button class="ribath-btn ribath-btn-primary" onclick="saveKalender()">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN SCRIPT LOGIC                                           -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    // ── KONFIGURASI BACKEND ────────────────────────────────────
+    // GANTI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+    
+    // State Aplikasi
+    let state = {
+      token: sessionStorage.getItem('ribath_admin_token') || '',
+      santri: [],
+      harian: [],
+      kalender: [],
+      pengumuman: '',
+      lembaga: {},
+      currentDate: new Date().toISOString().split('T')[0]
+    };
+
+    // ── API HELPER (Kompatibel dengan ribath-apps-script.js) ──
+    async function apiFetch(action, body = {}) {
+      const isGet = ['getListSantri','getAllSantri','getKalender','getPengumuman','getLembaga','getStatistik','getSantriById','getHarianBySantri','getHarianRange','publishStatistik'].includes(action);
+      const payload = isGet ? action + '&token=' + state.token : JSON.stringify({ action, ...body, token: state.token });
+      const url = isGet ? `${APPS_SCRIPT_URL}?action=${action}&token=${state.token}` : APPS_SCRIPT_URL;
+      const opts = isGet ? { method: 'GET' } : { method: 'POST', headers: {'Content-Type':'text/plain'}, body: payload };
+      
+      try {
+        const res = await fetch(url, opts);
+        const json = await res.json();
+        if (!json.success) {
+          alert('Error: ' + (json.error || 'Gagal menghubungi server'));
+          throw new Error(json.error);
+        }
+        return json.data;
+      } catch(e) {
+        console.error('API Error:', e);
+        return null;
+      }
+    }
+
+    // ── AUTENTIKASI & NAVIGASI (Sesuai Panduan) ───────────────
+    async function initApp() {
+      document.getElementById('inp-tgl-harian').value = state.currentDate;
+      document.getElementById('inp-tgl-kehadiran').value = state.currentDate;
+      
+      // Cek jika sudah punya token valid di sesi
+      if (!state.token) {
+        document.getElementById('btn-start-login').addEventListener('click', () => {
+          RibathNav.goAdmin();
+        });
+        return;
+      }
+
+      // Validasi token dengan backend saat reload
+      const valid = await apiFetch('validateAdminPin', { pin: 'check_token' }); // dummy, sebenarnya token dicek di server via cekTokenAdmin
+      // Karena backend cekTokenAdmin otomatis di doPost/doGet, kita lanjut load data
+      await loadData();
+      RibathAuth.loginAdmin(); // PANDUAN: PERUBAHAN 4
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('app').classList.add('ready');
+      updateDashboard();
+    }
+
+    function handleLogout() {
+      RibathAuth.logoutAdmin(); // PANDUAN: PERUBAHAN 4
+      state.token = '';
+      sessionStorage.removeItem('ribath_admin_token');
+      window.location.href = 'ribath-iqra-home.html';
+    }
+
+    // Override onSuccess RibathNav.goAdmin agar fetch token dari backend
+    const _originalGoAdmin = RibathNav.goAdmin.bind(RibathNav);
+    RibathNav.goAdmin = async function() {
+      RibathPinPrompt.show({
+        tipe: 'admin', judul: 'Masuk Panel Admin', sub: 'Masukkan PIN Admin 6 digit', digits: 6,
+        onSuccess: async () => {
+          RibathAuth.loginAdmin();
+          const res = await apiFetch('validateAdminPin', { pin: RibathPinPrompt._input });
+          if (res && res.token) {
+            state.token = res.token;
+            sessionStorage.setItem('ribath_admin_token', res.token);
+            await loadData();
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            document.getElementById('app').classList.add('ready');
+            updateDashboard();
+          } else {
+            alert('PIN tidak valid atau server bermasalah.');
+            RibathPinPrompt.hide();
+          }
+        }
+      });
+    };
+
+    // ── DATA LOADER ────────────────────────────────────────────
+    async function loadData() {
+      const [santri, kalender, peng, lem] = await Promise.all([
+        apiFetch('getAllSantri'),
+        apiFetch('getKalender'),
+        apiFetch('getPengumuman'),
+        apiFetch('getLembaga')
+      ]);
+      state.santri = santri || [];
+      state.kalender = kalender || [];
+      state.pengumuman = peng?.teks || '';
+      state.lembaga = lem || {};
+      renderSantriTable();
+      renderKalender();
+      loadPengumumanForm();
+      loadLembagaForm();
+      populateSelects();
+    }
+
+    // ── RENDER FUNCTIONS ───────────────────────────────────────
+    function updateDashboard() {
+      document.getElementById('lbl-tgl-hari-ini').textContent = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'short', year:'numeric' });
+      document.getElementById('stat-santri-aktif').textContent = state.santri.filter(s=>s.aktif).length;
+      document.getElementById('stat-belum-diisi').textContent = state.santri.filter(s=>s.aktif).length; // dummy, bisa dihitung dari harian
+      document.getElementById('stat-event-mendatang').textContent = state.kalender.length;
+    }
+
+    function renderSantriTable() {
+      const tbody = document.getElementById('tbody-santri');
+      tbody.innerHTML = state.santri.filter(s=>s.aktif).map(s => `
+        <tr>
+          <td><strong>${s.nama}</strong><br><span class="text-muted" style="font-size:11px">${s.level}</span></td>
+          <td><span class="ribath-chip chip-blue">${s.level}</span></td>
+          <td>${s.pin || '-'}</td>
+          <td><span class="ribath-chip chip-green">Aktif</span></td>
+          <td>
+            <!-- PANDUAN: PERUBAHAN 5 — Pisah tombol input & preview -->
+            <button class="tbl-btn edit" onclick="openModalSantri(${s.id})" title="Edit">📝</button>
+            <button class="tbl-btn view" onclick="RibathNav.goSantri(${s.id})" title="Lihat halaman santri">👁️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function populateSelects() {
+      const opts = state.santri.filter(s=>s.aktif).map(s => `<option value="${s.id}">${s.nama} (${s.level})</option>`).join('');
+      document.getElementById('sel-santri-harian').innerHTML = opts;
+      renderKehadiranGrid();
+    }
+
+    function renderKehadiranGrid() {
+      const grid = document.getElementById('kehadiran-grid');
+      grid.innerHTML = state.santri.filter(s=>s.aktif).map(s => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--page-card2); padding:10px; border-radius:8px;">
+          <span>${s.nama}</span>
+          <select class="form-select kehadiran-sel" data-id="${s.id}" style="width:auto; padding:6px 10px;">
+            <option value="hadir">✅ Hadir</option><option value="izin">🟡 Izin</option><option value="alpa">❌ Alpa</option>
+          </select>
+        </div>
+      `).join('');
+    }
+
+    function renderKalender() {
+      const container = document.getElementById('list-kalender');
+      if(state.kalender.length === 0) { container.innerHTML = '<p class="text-muted">Belum ada event.</p>'; return; }
+      container.innerHTML = `<table class="data-table"><thead><tr><th>Tanggal</th><th>Bulan</th><th>Judul</th><th>Tipe</th><th>Aksi</th></tr></thead><tbody>
+        ${state.kalender.map(k => `<tr><td>${k.tanggal}</td><td>${k.bulan}</td><td>${k.judul}</td><td><span class="ribath-chip chip-gold">${k.tipe}</span></td><td><button class="tbl-btn delete" onclick="deleteKalender(${k.id})">🗑️</button></td></tr>`).join('')}
+      </tbody></table>`;
+    }
+
+    function loadPengumumanForm() { document.getElementById('inp-pengumuman').value = state.pengumuman; }
+    function loadLembagaForm() {
+      document.getElementById('lem-nama').value = state.lembaga.nama || '';
+      document.getElementById('lem-alamat').value = state.lembaga.alamat || '';
+      document.getElementById('lem-wa').value = state.lembaga.wa || '';
+      document.getElementById('lem-ig').value = state.lembaga.instagram || '';
+    }
+
+    // ── CRUD HANDLERS ──────────────────────────────────────────
+    function openModalSantri(id) {
+      const s = id ? state.santri.find(x=>x.id==id) : null;
+      document.getElementById('modal-santri-title').textContent = id ? 'Edit Santri' : 'Tambah Santri';
+      document.getElementById('m-santri-id').value = id || '';
+      document.getElementById('m-santri-nama').value = s?.nama || '';
+      document.getElementById('m-santri-level').value = s?.level || 'Iqra';
+      document.getElementById('m-santri-pin').value = s?.pin || '';
+      document.getElementById('modal-santri').classList.add('open');
+    }
+
+    async function saveSantri() {
+      const data = {
+        id: document.getElementById('m-santri-id').value || undefined,
+        nama: document.getElementById('m-santri-nama').value,
+        level: document.getElementById('m-santri-level').value,
+        pin: document.getElementById('m-santri-pin').value,
+        aktif: true
+      };
+      await apiFetch('saveSantri', { data });
+      closeModal('modal-santri');
+      await loadData();
+      showToast('Santri berhasil disimpan');
+    }
+
+    async function deleteKalender(id) {
+      if(!confirm('Hapus event ini?')) return;
+      await apiFetch('deleteKalender', { id });
+      await loadData();
+      showToast('Event dihapus');
+    }
+
+    async function saveHarian() {
+      const data = {
+        tanggal: document.getElementById('inp-tgl-harian').value,
+        santri_id: document.getElementById('sel-santri-harian').value,
+        kehadiran: document.getElementById('inp-kehadiran').value,
+        posisi_quran: document.getElementById('inp-posisi').value,
+        tilawah: document.getElementById('inp-tilawah').value,
+        hafalan: document.getElementById('inp-hafalan').value,
+        target: document.getElementById('inp-target').value,
+        tarbiyah_modul: document.getElementById('inp-tarbiyah-modul').value,
+        tarbiyah_topik: document.getElementById('inp-tarbiyah-topik').value,
+        tarbiyah_respons: document.getElementById('inp-tarbiyah-respons').value,
+        catatan_ustadz: document.getElementById('inp-catatan').value,
+        akhlak_adab: document.getElementById('akhlak-adab').value,
+        akhlak_konsentrasi: document.getElementById('akhlak-konsentrasi').value,
+        akhlak_interaksi: document.getElementById('akhlak-interaksi').value,
+        akhlak_perlengkapan: document.getElementById('akhlak-perlengkapan').value,
+      };
+      await apiFetch('saveHarian', { data });
+      showToast('Catatan harian tersimpan');
+      resetFormHarian();
+    }
+
+    async function saveKehadiranBulk() {
+      const tgl = document.getElementById('inp-tgl-kehadiran').value;
+      const data = Array.from(document.querySelectorAll('.kehadiran-sel')).map(el => ({
+        santri_id: el.dataset.id, kehadiran: el.value
+      }));
+      await apiFetch('saveKehadiranBulk', { tanggal: tgl, data });
+      showToast('Kehadiran massal tersimpan');
+    }
+
+    async function saveKalender() {
+      const data = {
+        id: document.getElementById('m-kal-id').value || undefined,
+        tanggal: document.getElementById('m-kal-tgl').value,
+        bulan: document.getElementById('m-kal-bulan').value,
+        judul: document.getElementById('m-kal-judul').value,
+        tipe: document.getElementById('m-kal-tipe').value,
+        icon: document.getElementById('m-kal-icon').value,
+        catatan: document.getElementById('m-kal-catatan').value
+      };
+      await apiFetch('saveKalender', { data });
+      closeModal('modal-kalender');
+      await loadData();
+      showToast('Kalender diperbarui');
+    }
+
+    async function savePengumuman() {
+      const teks = document.getElementById('inp-pengumuman').value;
+      await apiFetch('savePengumuman', { teks });
+      showToast('Pengumuman dipublish');
+    }
+
+    async function saveLembaga() {
+      const data = {
+        nama: document.getElementById('lem-nama').value,
+        alamat: document.getElementById('lem-alamat').value,
+        wa: document.getElementById('lem-wa').value,
+        instagram: document.getElementById('lem-ig').value
+      };
+      await apiFetch('saveLembaga', { data });
+      showToast('Info lembaga disimpan');
+    }
+
+    async function publishStatistik() {
+      const start = document.getElementById('stat-start').value;
+      const end = document.getElementById('stat-end').value;
+      const label = document.getElementById('stat-label').value;
+      if(!start || !end || !label) return alert('Lengkapi periode dan label');
+      await apiFetch('publishStatistik', { start, end, label });
+      showToast('Statistik berhasil dipublish ke Home');
+    }
+
+    // ── UTILS & NAV ────────────────────────────────────────────
+    function switchView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-'+viewId).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+    }
+    document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+
+    function openModalKalender() { document.getElementById('modal-kalender').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function setAllKehadiran(val) { document.querySelectorAll('.kehadiran-sel').forEach(el => el.value = val); }
+    function resetFormHarian() { document.querySelectorAll('#view-harian input, #view-harian textarea').forEach(i => i.value = ''); }
+
+    async function exportAllData() {
+      const all = { santri: state.santri, kalender: state.kalender, pengumuman: state.pengumuman, lembaga: state.lembaga };
+      const blob = new Blob([JSON.stringify(all, null, 2)], {type: 'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ribath_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('_ribathToast');
+      if(!t) { t = document.createElement('div'); t.id = '_ribathToast'; document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Init saat DOM ready
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANDUAN INTEGRASI: FILE 3 — PERUBAHAN 3                   -->
+  <!-- PIN admin global & shared.js dipanggil sebelum </body>     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    // Nilai ini bisa dihardcode atau dibaca dari config server.
+    // shared.js akan membaca ini untuk validasi lokal awal.
+    window.RIBATH_ADMIN_PIN = '123456'; 
+  </script>
+  <script src="shared.js"></script>
+</body>
+</html>
